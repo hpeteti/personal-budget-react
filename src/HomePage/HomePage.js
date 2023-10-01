@@ -54,7 +54,7 @@ function HomePage() {
   function D3JSchart(data) {
     const width = 700;
     const height = 700;
-    const radius = (Math.min(width,height)/ 2);
+    const radius = (Math.min(width,height)/ 4);
 
     if (d3ChartRef.current) {
         d3.select(d3ChartRef.current).selectAll('*').remove();
@@ -75,12 +75,12 @@ function HomePage() {
     .value(d => d.budget);
 
     const arc = d3.arc()
-    .innerRadius(radius * 0.4)
-    .outerRadius(radius * 0.8);
+    .innerRadius(radius * 1.1)
+    .outerRadius(radius * 0.5);
 
     const outerArc = d3.arc()
-    .innerRadius(radius * 0.9)
-    .outerRadius(radius * 0.9);
+    .innerRadius(radius * 1.2)
+    .outerRadius(radius * 0.8);
 
     const arcs = svg.selectAll('.arc')
     .data(pie(data))
@@ -92,40 +92,33 @@ function HomePage() {
     .attr('d',arc)
     .attr('fill', d => color(d.data.title));
 
-    const text = svg.selectAll('.labels')
-    .data(pie(data))
-    .enter()
-    .append('text')
-    .attr('dy', '.35em')
-    .text(function (d) {
-      return d.data.title;
-    });
+    const labelLines = arcs.append('line')
+        .attr('x1', d => outerArc.centroid(d)[0])
+        .attr('y1', d => outerArc.centroid(d)[1])
+        .attr('x2', d => {
+            const pos = outerArc.centroid(d);
+            const midAngle = Math.atan2(pos[1], pos[0]);
+            return Math.cos(midAngle) * (radius + 10);
+        })
+        .attr('y2', d => {
+            const pos = outerArc.centroid(d);
+            const midAngle = Math.atan2(pos[1], pos[0]);
+            return Math.sin(midAngle) * (radius + 10);
+        })
+        .attr('stroke', 'green');
 
-    function midAngle(d) {
-      return d.startAngle + (d.endAngle -d.startAngle) /2;
-    }
-
-    text.transition().duration(1000)
-    .attr('transform', function(d) {
-      var pos = outerArc.centroid(d);
-      pos[0] = radius * (midAngle(d) < Math.PI ? 1 : -1);
-      return `translate(${pos[0]},${pos[1]})`;
-    })
-    .style('text-anchor',function (d) {
-      return midAngle(d) < Math.PI ? 'start' : 'end';
-    });
-
-    const polyline = svg.selectAll('.lines')
-    .data(pie(data))
-    .enter()
-    .append('polyline');
-
-    polyline.transition().duration(1000)
-    .attr('points', function(d) {
-      var pos = outerArc.centroid(d);
-      pos[0] = radius * 0.95 * (midAngle(d) < Math.PI ? 1 : -1);
-      return `${arc.centroid(d)},${outerArc.centroid(d)},${pos[0]},${pos[1]}`;
-    });
+    arcs.append('text')
+        .attr('transform', d => {
+            const pos = outerArc.centroid(d);
+            const midAngle = Math.atan2(pos[1], pos[0]);
+            return `translate(${Math.cos(midAngle) * (radius + 20)},${Math.sin(midAngle) * (radius + 20)})`;
+        })
+        .attr('dy', '0.25em')
+        .style('text-anchor', d => {
+            const pos = outerArc.centroid(d);
+            return (Math.cos(Math.atan2(pos[1], pos[0])) > 0) ? 'start' : 'end';
+        })
+        .text(d => `${d.data.title} (${d.data.budget})`);
 
   }
   return (
